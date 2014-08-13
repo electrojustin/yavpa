@@ -1,0 +1,29 @@
+A great resource for learning about the VP format is on the hard-light wiki:
+http://www.hard-light.net/wiki/index.php/*.VP
+
+A couple of points it doesn't make particularly clear though:
+The "direntries" are also stored one after another somewhere in the file. This
+can theoretically be anywhere, but most implementations seem to just stick
+them at the end. The diroffset part of the header points to the first of these
+direntries.
+
+The way directory structure is preserved is as follows:
+The direntries are one after another and are read linearly. A direntry with a
+size and timestamp of 0 represents a directory. Essentially this tells the
+unpacker to "go down a directory." So if the unpacker saw a direntry with name
+"name" and a size and timestamp of 0, it would know that the files and folders
+every direntry after represent are INSIDE of the folder "name." A direntry that
+looks like a folder but has the specific name ".." means go up a directory; It
+tells the unpacker that the files and folders described from hear on out are
+actually inside the folder ABOVE. This lends itself well to recursion, but very
+poorly to multithreading. Thankfully reading the directory structure is not a
+CPU intensive task, but this may make compression a pain if it's ever
+implemented.
+
+The hard light wiki says that the timestamp field is in UNIX time. For those
+unfamiliar with the concept, UNIX systems keep track of time by essentially
+counting the number of seconds since January 1st, 1970. Since the VP format
+uses signed 32-bit integers, it will suffer the same fate as many 32-bit UNIX
+operating systems in 2038. The max for an signed 32-bit integer is 2147483647,
+which means it will increment one too many times around 2038 and set the sign
+bit, suddenly catapulting the system into 1902.

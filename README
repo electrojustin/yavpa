@@ -1,0 +1,42 @@
+YAVPA
+Yet Another Volition Package Archiver
+
+What is a Volition Package?
+A VP file is a file format used to combine a whole directory structure into a
+single file. The most common use of an archiver for such a format is probably
+modding the game FreeSpace 2.
+
+How do I install?
+While in the source directory, simply type 'make' to compile the binaries. If
+you so desire, 'make install' will copy the binaries into /usr/bin/
+
+How do I extract a VP file?
+Simply use yavpu (yet another volition package unpacker). Usage is simple:
+yavpu <extraction directory> <path to VP file>. So say you have BluePlanet
+in your home folder and you wanted to extract bp-core.vp into your home
+folder, and you have the binaries installed to /usr/bin. Simply type:
+"yavpu ~/ ~/blueplanet/bp-core.vp" into the command line and a "data"
+directory will appear in your home folder with all the bp-core files.
+
+How do I make a VP file?
+Simply use yavpp (yet another volition package packer). Usage for yavpp
+is also simple: yavpp <path of new VP file> <path to file tree to pack>. So
+if you wanted to make a VP called "mymod.vp" and you had a directory with the
+path "~/mysuperdupermod/" that had all the files and folders to be included in
+it, you would simply type "yavpp mymod.vp ~/mysuperdupermod/".
+
+Why use YAVPA
+YAVPA is a simple, command line Volition Package archive utility. The only
+dependency is the standard C library, and it uses functions that are unlikely
+to change. This means you don't have to install the latest and greatest GUI
+library, nor do you have to worry about version X of the latest and greatest
+GUI library breaking backwards compatibility with version Y. Additionally, the
+YAVPA tools are designed "UNIX style," which means brevity. Neither of them
+print anything to the console unless there is an error, which makes them
+perfect for scripting.
+
+Hacking:
+If you wish to "hack" features into YAVPA, feel free to do so; the license is
+MIT, so do literally whatever you want with it. If you have any questions about
+the file format, check out README.VP. If you have other questions or think your
+code should be added to the main branch, feel free to contact me.
