@@ -117,7 +117,7 @@ void read_dir (struct file_node* parent, DIR* to_read, char* path)
 			{
 				read_dir (new_child, subdir, subdir_name);
 				closedir (subdir);
-				new_child->offset = 0;
+				new_child->offset = last_file_created.offset + last_file_created.size;
 				new_child->size = 0;
 				new_child->last_modified = 0;
 			}
