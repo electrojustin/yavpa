@@ -381,16 +381,16 @@ int main (int argc, char** argv)
 
 	if (mode != MODE_SINGLE)
 	{
-		if (strlen (argv [2]) - 2 == '/')
+		if (argv [path_arg] [strlen (argv [path_arg]) - 1] == '/')
 			write_dir (argv [path_arg], &file_tree_root);
 		else
 		{
 			//Add the / to the end of the directory name
 			int len = strlen (argv [path_arg]);
 			char* new_path = malloc (len+2);
+			strcpy (new_path, argv [path_arg]);
 			new_path [len+1] = '\0';
 			new_path [len] = '/';
-			strcpy (new_path, argv [path_arg]);
 
 			write_dir (new_path, &file_tree_root); //Write the file tree
 
