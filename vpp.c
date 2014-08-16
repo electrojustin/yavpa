@@ -164,6 +164,11 @@ void write_vp (char* path)
 
 	//Open file for writing
 	write_file = fopen (path, "w");
+	if (write_file <= 0)
+	{
+		printf ("Could not create or open VP file\n");
+		exit (-1);
+	}
 
 	//Write VP header
 	write_vp_header (write_file);

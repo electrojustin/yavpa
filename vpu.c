@@ -22,6 +22,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <errno.h>
 
 #include "vp.h"
 
@@ -132,7 +133,23 @@ void write_file (char* path, struct file_node* file)
 			full_path [loop] = file->name [loop-path_length];
 
 		//Write data to file
+		errno = 0;
 		output = fopen (full_path, "w");
+		if (errno == ENOENT || errno == ENOTDIR) //Error checking
+		{
+			printf ("Invalid path %s\n", path);
+			exit (-1);
+		}
+		if (errno == ENOSPC)
+		{
+			printf ("Filesystem ran out of space\n");
+			exit (-1);
+		}
+		if (errno = EACCES || errno == EROFS)
+		{
+			printf ("Cannot create folder %s: Access denied\n", full_path);
+			exit (-1);
+		}
 		fwrite (file_buf + file->offset, 1, file->size, output);
 
 		//Cleanup
@@ -179,7 +196,25 @@ void write_dir (char* path, struct file_node* dir)
 		new_path [loop] = '/';
 		new_path [loop+1] = '\0';
 
+		errno = 0;
 		mkdir (new_path, 0777); //Create directory
+
+		//Error checking
+		if (errno == ENOENT || errno == ENOTDIR)
+		{
+			printf ("Invalid path %s\n", path);
+			exit (-1);
+		}
+		if (errno == ENOSPC)
+		{
+			printf ("Filesystem ran out of space\n");
+			exit (-1);
+		}
+		if (errno = EACCES || errno == EROFS)
+		{
+			printf ("Cannot create folder %s: Access denied\n", new_path);
+			exit (-1);
+		}
 
 		//Take care of everything INSIDE the directory
 		write_tree (new_path, dir);
