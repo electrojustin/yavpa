@@ -25,15 +25,23 @@
 
 #include "vp.h"
 
+#define MODE_DEFAULT 0
+#define MODE_SINGLE 1
+#define MODE_LIST 2
+
+char mode = MODE_DEFAULT;
 struct file_node file_tree_root;
 char* file_buf;
 size_t file_size;
+int num_tabs;
 
 struct file_node* add_child (struct file_node* parent, struct dir_entry* child_data);
 int parse_dir (struct file_node* parent, struct dir_entry* dir);
 void write_tree (char* path, struct file_node* root);
 void write_dir (char* path, struct file_node* dir);
 void write_file (char* path, struct file_node* file);
+char* parse_path (char* path);
+struct file_node* find_file_by_path (char* path);
 
 struct file_node* add_child (struct file_node* parent, struct dir_entry* child_data)
 {
@@ -96,78 +104,100 @@ int parse_dir (struct file_node* parent, struct dir_entry* dir)
 
 void write_file (char* path, struct file_node* file)
 {
-	size_t total_length;
-	size_t name_length;
-	size_t path_length;
-	char* full_path; //Directory path + the name of the file
-	int loop = 0;
-	FILE* output;
-
-	//Memory management with full path buffer
-	path_length = strlen (path);
-	name_length = strlen (file->name);
-	total_length = path_length + name_length;
-	full_path = malloc (total_length + 1);
-	bzero (full_path, total_length + 1); //Just to be safe...cannot assume freshly allocated memory will be filled with 0s
-
-	//Figure out the path with file name
-	for (loop; loop < path_length; loop ++)
-		full_path [loop] = path [loop];
-	if (!full_path [loop-1]) //Usually paths will come NULL terminated
+	if (mode != MODE_LIST)
 	{
-		loop --; //Overwrite this NULL terminator with data to append
-		path_length --;
+		size_t total_length;
+		size_t name_length;
+		size_t path_length;
+		char* full_path; //Directory path + the name of the file
+		int loop = 0;
+		FILE* output;
+
+		//Memory management with full path buffer
+		path_length = strlen (path);
+		name_length = strlen (file->name);
+		total_length = path_length + name_length;
+		full_path = malloc (total_length + 1);
+		bzero (full_path, total_length + 1); //Just to be safe...cannot assume freshly allocated memory will be filled with 0s
+
+		//Figure out the path with file name
+		for (loop; loop < path_length; loop ++)
+			full_path [loop] = path [loop];
+		if (!full_path [loop-1]) //Usually paths will come NULL terminated
+		{
+			loop --; //Overwrite this NULL terminator with data to append
+			path_length --;
+		}
+		for (loop; loop < total_length; loop ++) //Copy name into path
+			full_path [loop] = file->name [loop-path_length];
+
+		//Write data to file
+		output = fopen (full_path, "w");
+		fwrite (file_buf + file->offset, 1, file->size, output);
+
+		//Cleanup
+		fclose (output);
+		free (full_path);
 	}
-	for (loop; loop < total_length; loop ++) //Copy name into path
-		full_path [loop] = file->name [loop-path_length];
-
-	//Write data to file
-	output = fopen (full_path, "w");
-	fwrite (file_buf + file->offset, 1, file->size, output);
-
-	//Cleanup
-	fclose (output);
-	free (full_path);
+	else
+	{
+		int loop;
+		for (loop = 0; loop < num_tabs; loop ++)
+			printf ("\t");
+		printf ("%s\n", file->name);
+	}
 }
 
 void write_dir (char* path, struct file_node* dir)
 {
-	size_t total_length;
-	size_t name_length;
-	size_t path_length;
-	char* new_path; //Directory path + directory name
-	int loop = 0;
-
-	//Memory management with new path buffer;
-	path_length = strlen (path);
-	name_length = strlen (dir->name);
-	total_length = path_length + name_length;
-	new_path = malloc (total_length + 2); //Count the NULL terminator and the '/'
-	bzero (new_path, total_length + 2); //Just to be safe...cannot assume freshly allocated memory will be filled with 0s
-
-	//Figure out the the new path
-	for (loop; loop < path_length; loop ++)
-		new_path [loop] = path [loop];
-	if (!new_path [loop-1]) //Usually paths will come NULL terminated
+	if (mode != MODE_LIST)
 	{
-		loop --; //Overwrite this NULL terminator with data to append
-		path_length --;
+		size_t total_length;
+		size_t name_length;
+		size_t path_length;
+		char* new_path; //Directory path + directory name
+		int loop = 0;
+
+		//Memory management with new path buffer;
+		path_length = strlen (path);
+		name_length = strlen (dir->name);
+		total_length = path_length + name_length;
+		new_path = malloc (total_length + 2); //Count the NULL terminator and the '/'
+		bzero (new_path, total_length + 2); //Just to be safe...cannot assume freshly allocated memory will be filled with 0s
+
+		//Figure out the the new path
+		for (loop; loop < path_length; loop ++)
+			new_path [loop] = path [loop];
+		if (!new_path [loop-1]) //Usually paths will come NULL terminated
+		{
+			loop --; //Overwrite this NULL terminator with data to append
+			path_length --;
+		}
+		for (loop; loop < total_length; loop ++) //Append new subdirectory
+			new_path [loop] = dir->name [loop-path_length];
+		loop = strlen (new_path);
+		new_path [loop] = '/';
+		new_path [loop+1] = '\0';
+
+		mkdir (new_path, 0777); //Create directory
+
+		//Take care of everything INSIDE the directory
+		write_tree (new_path, dir);
+
+		//Cleanup
+		free (new_path);
 	}
-	for (loop; loop < total_length; loop ++) //Append new subdirectory
-		new_path [loop] = dir->name [loop-path_length];
-	loop = strlen (new_path);
-	new_path [loop] = '/';
-	new_path [loop+1] = '\0';
-
-	//Create directory
-	mkdir (new_path, 0777);
-
-	//Take care of everything INSIDE the directory
-	write_tree (new_path, dir);
-
-	//Cleanup
-	free (new_path);
-	free (dir->children); //Write functions are recursive, so when write_tree returns we are GUARANTEED to have no unwritten data left in this directory
+	else
+	{
+		int loop;
+		for (loop = 0; loop < num_tabs; loop ++)
+			printf ("\t");
+		printf ("%s\n", dir->name);
+		num_tabs ++;
+		write_tree (path, dir);
+		num_tabs --;
+	}
+	free (dir->children); //Write functions are recursive, so when write_tree returns we are GUARANTEED to have no unwritten data left in this directory	
 }
 
 void write_tree (char* path, struct file_node* root)
@@ -184,22 +214,97 @@ void write_tree (char* path, struct file_node* root)
 	}
 }
 
-int main (int argc, char** argv)
+char* parse_path (char* path)
 {
-	FILE* input;
+	int loop = 0;
+	char* ret;
 
-	//Argument sanity check
-	if (argc != 3)
+	while (path [loop] && path [loop] != '/')
+		loop ++;
+
+	ret = malloc (loop + 2); //Include the NULL terminator and the /, if there is one
+
+	strncpy (ret, path, loop + 1); //Include the / because it indicates that we still have more directory tree to go down
+
+	ret [loop + 1] = '\0';
+
+	return ret;
+}
+
+struct file_node* find_file_by_path (char* path)
+{
+	struct file_node* current = &file_tree_root;
+	char* current_dir_name;
+	int loop;
+	int position = 5;
+
+	current_dir_name = parse_path (path + position); //Skip data directory
+
+	//Stop when our current dir name doesn't end in a '/', because then we've reached the filename itself
+	while (current_dir_name [strlen (current_dir_name)-1] == '/')
 	{
-		printf ("Invalid arguments.\nUsage: yavpu <extraction path> <to extract>\n");
+		for (loop = 0; loop < current->num_children; loop ++)
+		{
+			if (!strncmp (current->children [loop].name, current_dir_name, strlen (current_dir_name)-1))
+				break;
+		}
+		if (loop == current->num_children)
+		{
+			printf ("Path not found in given VP file\n");
+			exit (-1);
+		}
+
+		//Update the current node
+		current = &(current->children [loop]);
+
+		//Get the next part of the path
+		position += strlen (current_dir_name);
+		free (current_dir_name);
+		current_dir_name = parse_path (path + position);
+	}
+
+	//Check the last directory in the path for the filename
+	for (loop = 0; loop < current->num_children; loop ++)
+	{
+		if (!strncmp (current->children [loop].name, current_dir_name, strlen (current_dir_name)-1))
+			break;
+	}
+	if (loop == current->num_children)
+	{
+		printf ("Path not found in given VP file\n");
 		exit (-1);
 	}
 
+	return &(current->children [loop]);
+}
+
+int main (int argc, char** argv)
+{
+	int path_arg = 1;
+	int vp_file_arg = 2;
+	FILE* input;
+
+	//Argument sanity check
+	if (argc < 3 || argc == 4 || argc > 5)
+	{
+		printf ("Invalid arguments.\nUsage: yavpu <extraction path> <to extract>\nyavpu -s <extraction path> <to extract> <specific file to extract>\nyavpu -l <to extract>\n");
+		exit (-1);
+	}
+
+	if (!strcmp (argv [1], "-s"))
+	{
+		mode = MODE_SINGLE;
+		path_arg ++;
+		vp_file_arg ++;
+	}
+	else if (!strcmp (argv [1], "-l"))
+		mode = MODE_LIST;
+
 	//Open VP file
-	input = fopen (argv [2], "r");
+	input = fopen (argv [vp_file_arg], "r");
 	if (input <= 0)
 	{
-		printf ("%s: No such file or directory\n", argv [2]);
+		printf ("%s: No such file or directory\n", argv [vp_file_arg]);
 		exit (-1);
 	}
 
@@ -231,8 +336,13 @@ int main (int argc, char** argv)
 	//Start parsing the memory image of the VP file
 	parse_dir (&file_tree_root, (struct dir_entry*)(file_buf + ((struct vp_header*)file_buf)->vp_diroffset));
 
-	//Write the file tree
-	write_dir (argv [1], &file_tree_root);
+	if (mode != MODE_SINGLE)
+		write_dir (argv [path_arg], &file_tree_root); //Write the file tree
+	else
+	{
+		struct file_node* target = find_file_by_path (argv [4]);
+		write_file (argv [path_arg], target); //Write the single target file
+	}
 
 	//Cleanup
 	free (file_buf);
