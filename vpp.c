@@ -297,7 +297,21 @@ int main (int argc, char** argv)
 		printf ("%s: No such file or directory\n", argv [2]);
 		exit (-1);
 	}
-	read_dir (&file_tree_root, input_directory, argv [2]);
+	if (strlen (argv [2]) - 2 == '/')
+		read_dir (&file_tree_root, input_directory, argv [2]);
+	else
+	{
+		//Add the / to the end of the directory name
+		int len = strlen (argv [2]);
+		char* new_path = malloc (len+2);
+		new_path [len+1] = '\0';
+		new_path [len] = '/';
+		strcpy (new_path, argv [2]);
+
+		read_dir (&file_tree_root, input_directory, new_path);
+
+		free (new_path);
+	}
 	closedir (input_directory);
 
 	//Write the file tree to the VP file

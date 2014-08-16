@@ -133,22 +133,24 @@ void write_file (char* path, struct file_node* file)
 			full_path [loop] = file->name [loop-path_length];
 
 		//Write data to file
-		errno = 0;
 		output = fopen (full_path, "w");
-		if (errno == ENOENT || errno == ENOTDIR) //Error checking
+		if (output <= 0)
 		{
-			printf ("Invalid path %s\n", path);
-			exit (-1);
-		}
-		if (errno == ENOSPC)
-		{
-			printf ("Filesystem ran out of space\n");
-			exit (-1);
-		}
-		if (errno = EACCES || errno == EROFS)
-		{
-			printf ("Cannot create folder %s: Access denied\n", full_path);
-			exit (-1);
+			if (errno == ENOENT || errno == ENOTDIR) //Error checking
+			{
+				printf ("Invalid path %s\n", path);
+				exit (-1);
+			}
+			if (errno == ENOSPC)
+			{
+				printf ("Filesystem ran out of space\n");
+				exit (-1);
+			}
+			if (errno = EACCES || errno == EROFS)
+			{
+				printf ("Cannot create file %s: Access denied\n", full_path);
+				exit (-1);
+			}
 		}
 		fwrite (file_buf + file->offset, 1, file->size, output);
 
@@ -196,24 +198,24 @@ void write_dir (char* path, struct file_node* dir)
 		new_path [loop] = '/';
 		new_path [loop+1] = '\0';
 
-		errno = 0;
-		mkdir (new_path, 0777); //Create directory
-
-		//Error checking
-		if (errno == ENOENT || errno == ENOTDIR)
+		if (mkdir (new_path, 0777)); //Create directory
 		{
-			printf ("Invalid path %s\n", path);
-			exit (-1);
-		}
-		if (errno == ENOSPC)
-		{
-			printf ("Filesystem ran out of space\n");
-			exit (-1);
-		}
-		if (errno = EACCES || errno == EROFS)
-		{
-			printf ("Cannot create folder %s: Access denied\n", new_path);
-			exit (-1);
+			//Error checking
+			if (errno == ENOENT || errno == ENOTDIR)
+			{
+				printf ("Invalid path %s\n", path);
+				exit (-1);
+			}
+			if (errno == ENOSPC)
+			{
+				printf ("Filesystem ran out of space\n");
+				exit (-1);
+			}
+			if (errno == EROFS)
+			{
+				printf ("Cannot create folder %s: Access denied\n", new_path);
+				exit (-1);
+			}
 		}
 
 		//Take care of everything INSIDE the directory
@@ -378,7 +380,23 @@ int main (int argc, char** argv)
 	parse_dir (&file_tree_root, (struct dir_entry*)(file_buf + ((struct vp_header*)file_buf)->vp_diroffset));
 
 	if (mode != MODE_SINGLE)
-		write_dir (argv [path_arg], &file_tree_root); //Write the file tree
+	{
+		if (strlen (argv [2]) - 2 == '/')
+			write_dir (argv [path_arg], &file_tree_root);
+		else
+		{
+			//Add the / to the end of the directory name
+			int len = strlen (argv [path_arg]);
+			char* new_path = malloc (len+2);
+			new_path [len+1] = '\0';
+			new_path [len] = '/';
+			strcpy (new_path, argv [path_arg]);
+
+			write_dir (new_path, &file_tree_root); //Write the file tree
+
+			free (new_path);
+		}
+	}
 	else
 	{
 		struct file_node* target = find_file_by_path (argv [4]);
