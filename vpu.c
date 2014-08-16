@@ -238,6 +238,12 @@ struct file_node* find_file_by_path (char* path)
 	int loop;
 	int position = 5;
 
+	if (strncmp (path, "data", 4))
+	{
+		printf ("Path not found in given VP file (Perhaps forgot about the toplevel data directory?)\n");
+		exit (-1);
+	}
+
 	current_dir_name = parse_path (path + position); //Skip data directory
 
 	//Stop when our current dir name doesn't end in a '/', because then we've reached the filename itself
