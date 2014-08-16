@@ -18,6 +18,16 @@ folder, and you have the binaries installed to /usr/bin. Simply type:
 "yavpu ~/ ~/blueplanet/bp-core.vp" into the command line and a "data"
 directory will appear in your home folder with all the bp-core files.
 
+To extract a single file from the file tree stored in the VP file, use the "-s"
+flag and specify the path of the target file at the very end. So, if you wanted
+to get myfile.fs2 out of the myfolder folder inside myvp.vp and wanted to put
+it in your home directory, you would type: 
+"yavpu -s ~/ myvp.vp data/myfolder/myfile.fs2"
+
+It is also possible to list the folders and files in a VP file using the -l
+flag. To list the files and folders in something like "myvp.vp", simply type:
+"yavpu -l myvp.vp". 
+
 How do I make a VP file?
 Simply use yavpp (yet another volition package packer). Usage for yavpp
 is also simple: yavpp <path of new VP file> <path to file tree to pack>. So
