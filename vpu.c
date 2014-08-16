@@ -400,7 +400,21 @@ int main (int argc, char** argv)
 	else
 	{
 		struct file_node* target = find_file_by_path (argv [4]);
-		write_file (argv [path_arg], target); //Write the single target file
+		if (argv [path_arg] [strlen (argv [path_arg]) - 1] == '/')
+			write_file (argv [path_arg], target); //Write the single target file
+		else
+		{
+			//Add the / to the end of the directory name
+			int len = strlen (argv [path_arg]);
+			char* new_path = malloc (len+2);
+			strcpy (new_path, argv [path_arg]);
+			new_path [len+1] = '\0';
+			new_path [len] = '/';
+
+			write_file (new_path, target); //Write the single target file
+
+			free (new_path);
+		}
 	}
 
 	//Cleanup
